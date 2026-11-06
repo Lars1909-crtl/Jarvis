@@ -16,6 +16,7 @@ def ask():
     text = data.get("text", "").strip()
     if not text:
         return jsonify({"answer": "Ich habe dich nicht verstanden. Sag es nochmal?"})
+    
     answer = brain.handle_command(text)
     return jsonify({"answer": answer})
 
@@ -24,4 +25,5 @@ def get_wishlist():
     return jsonify(wishlist_mod.get_all())
 
 if __name__ == "__main__":
+    # host 0.0.0.0 = erreichbar vom iPad im gleichen WLAN
     app.run(host="0.0.0.0", port=5000, debug=True)

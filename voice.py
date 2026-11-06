@@ -1,3 +1,12 @@
-# Stimme: Für den Start spricht das iPad selbst über Web Speech API (index.html).
-# Später: Piper TTS - VOICE_NAME = "de_DE-thorsten-medium"
-VOICE_NAME = "de_DE-thorsten-medium"
+"""
+Stimme - Vorbereitung für Piper TTS (kostenlos, offline)
+Installation später:
+pip install piper-tts
+Dann: Stimme wählen und hier einbauen.
+
+Für den Start spricht das iPad selbst über Web Speech API (siehe index.html).
+Das ist kostenlos und funktioniert sofort.
+"""
+
+VOICE_NAME = "de_DE-thorsten-medium"  # Beispiel für Piper, später anpassbar
+# Weitere Stimmen: https://github.com/rhasspy/piper

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>JARVIS</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif}
+  body{background:#000000;color:white;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;overflow:hidden;background-image:radial-gradient(ellipse at 50% 0%, #1a050a 0%, #000000 55%)}
+  .top{width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .logo{font-size:13px;letter-spacing:4px;opacity:.85;color:#fff}
+  .logo span{color:#8a1526}
+  .time{font-size:13px;opacity:.7}
+  .core{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;width:100%;max-width:480px}
+  /* ORB - DUNKLES WEINROT, OHNE MIKRO-SYMBOL */
+  .orb{width:190px;height:190px;border-radius:50%;background:radial-gradient(circle at 35% 32%, #7a1426 0%, #5a0a1a 28%, #3d0712 58%, #180307 82%, #000000 100%);box-shadow:0 0 45px #6b0f1f88, 0 0 95px #5a0a1a55, inset 0 0 35px #00000088;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.25s;border:1px solid #6b0f1f66;position:relative}
+  .orb::before{content:'';position:absolute;inset:22px;border-radius:50%;background:radial-gradient(circle at 40% 35%, #9a1a32 0%, #5a0a1a 45%, transparent 75%);opacity:.85}
+  .orb::after{content:'';position:absolute;inset:48px;border-radius:50%;background:radial-gradient(circle, #ffffff22 0%, transparent 60%);opacity:.6}
+  .orb:active{transform:scale(.96)}
+  .orb.listening{animation:winePulse 1.4s infinite}
+  @keyframes winePulse{0%{box-shadow:0 0 35px #8a1526}50%{box-shadow:0 0 85px #a11a2e, 0 0 130px #6b0f1f55}100%{box-shadow:0 0 35px #8a1526}}
+  .status{font-size:18px;min-height:26px;text-align:center;opacity:.9}
+  .answer{background:#0a0a0a;border:1px solid #6b0f1f88;border-radius:18px;padding:16px;width:100%;min-height:80px;line-height:1.5;font-size:16px;box-shadow:0 0 20px #6b0f1f22}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .chip{background:#120507;border:1px solid #6b0f1f;color:#fff;padding:8px 14px;border-radius:999px;font-size:13px;cursor:pointer}
+  .chip:active{background:#3d0712}
+  .input-row{display:flex;gap:8px;width:100%}
+  input{flex:1;background:#0a0a0a;border:1px solid #6b0f1f88;border-radius:999px;padding:13px 16px;color:white;font-size:15px;outline:none}
+  input::placeholder{color:#ffffff88}
+  button.send{background:linear-gradient(135deg,#6b0f1f,#2a050c);color:white;border:1px solid #8a1526;padding:13px 20px;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer}
+  .wishlist{width:100%;background:#0a0a0a;border:1px solid #6b0f1f55;border-radius:16px;padding:14px}
+  .wishlist h3{font-size:13px;letter-spacing:1px;opacity:.7;margin-bottom:8px;color:#c98a95}
+  .wishlist div{font-size:14px;padding:4px 0;border-bottom:1px solid #ffffff11}
+  .hint{font-size:12px;opacity:.5;text-align:center}
+</style>
+</head>
+<body>
+<div class="top"><div class="logo">J A R V I S<span> •</span></div><div class="time" id="clock"></div></div>
+<div class="core">
+  <!-- Orb OHNE Mikro-Symbol - nur antippen zum Sprechen -->
+  <div class="orb" id="orb" onclick="startListen()" title="Antippen zum Sprechen"></div>
+  <div class="status" id="status">Tippe auf den Kern und sprich mit mir</div>
+  <div class="answer" id="answer">Hey Lars. Ich bin bereit. Sag z.B. "Was steht auf meiner Wishlist?" oder "Gib mir die News".</div>
+  <div class="chips">
+    <div class="chip" onclick="quick('Was steht auf meiner Wishlist?')">✨ Wishlist</div>
+    <div class="chip" onclick="quick('Gib mir die News')">📰 News</div>
+    <div class="chip" onclick="quick('Was habe ich heute für Termine?')">📅 Termine</div>
+  </div>
+  <div class="input-row">
+    <input id="textInput" placeholder="Oder hier tippen..." onkeydown="if(event.key==='Enter') sendText()">
+    <button class="send" onclick="sendText()">Senden</button>
+  </div>
+  <div class="wishlist"><h3>DEINE WISHLIST</h3><div id="wishList">Lädt...</div></div>
+  <div class="hint">Antippen = Sprechen • Weinrot Design</div>
+</div>
+<script>
+function updateClock(){ document.getElementById('clock').textContent = new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}); }
+setInterval(updateClock,1000); updateClock();
+loadWishlist();
+async function loadWishlist(){
+  try{ const r = await fetch('/wishlist'); const data = await r.json();
+    document.getElementById('wishList').innerHTML = data.length ? data.map(x=> '• '+x).join('<br>') : 'Noch leer';
+  }catch(e){ document.getElementById('wishList').textContent='Noch leer'; }
+}
+function speak(text){
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang='de-DE'; u.rate=1; u.pitch=1;
+  const voices = window.speechSynthesis.getVoices();
+  const de = voices.find(v=>v.lang.startsWith('de') && v.name.toLowerCase().includes('daniel')) || voices.find(v=>v.lang.startsWith('de'));
+  if(de) u.voice=de;
+  window.speechSynthesis.speak(u);
+}
+async function sendToJarvis(text){
+  document.getElementById('status').textContent='Jarvis denkt nach...';
+  document.getElementById('answer').textContent='...';
+  const res = await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+  const data = await res.json();
+  document.getElementById('answer').textContent=data.answer;
+  document.getElementById('status').textContent='Jarvis antwortet';
+  speak(data.answer);
+  loadWishlist();
+}
+function sendText(){ const v=document.getElementById('textInput').value.trim(); if(!v) return; document.getElementById('textInput').value=''; sendToJarvis(v); }
+function quick(t){ sendToJarvis(t); }
+function startListen(){
+  const orb=document.getElementById('orb');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ alert('Dein Browser unterstützt kein Mikrofon. Tippe einfach unten.'); return; }
+  const rec=new SR(); rec.lang='de-DE'; rec.interimResults=false;
+  orb.classList.add('listening'); document.getElementById('status').textContent='Ich höre zu... sprich jetzt';
+  rec.onresult=(e)=>{ const txt=e.results[0][0].transcript; orb.classList.remove('listening'); sendToJarvis(txt); };
+  rec.onerror=()=>{ orb.classList.remove('listening'); document.getElementById('status').textContent='Habe ich nicht verstanden, probier es nochmal'; };
+  rec.onend=()=>{ orb.classList.remove('listening'); };
+  rec.start();
+}
+</script>
+</body>
+</html>
